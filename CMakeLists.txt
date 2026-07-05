@@ -63,3 +63,53 @@ if (MSVC)
 else()
   target_compile_options(iec61850-client-backend PRIVATE -Wall -Wextra -pedantic)
 endif()
+
+# ---------------------------------------------------------------------------
+# Unit tests (enabled when BUILD_STUDIO_TESTS=ON)
+# ---------------------------------------------------------------------------
+option(BUILD_STUDIO_TESTS "Build IEC 61850 Client Studio unit tests" OFF)
+
+if (BUILD_STUDIO_TESTS)
+  enable_testing()
+
+  add_executable(studio-tests
+    backend/tests/test_main.cpp
+    backend/tests/test_utils.cpp
+    backend/src/utils.cpp
+  )
+
+  target_include_directories(studio-tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/backend/src"
+    "${CMAKE_CURRENT_SOURCE_DIR}/backend/tests"
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/libiec61850/src/iec61850/inc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/libiec61850/src/common/inc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/libiec61850/src/goose"
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/libiec61850/src/sampled_values"
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/libiec61850/src/mms/inc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/libiec61850/src/mms/inc_private"
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/libiec61850/src/mms/iso_mms/asn1c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/libiec61850/src/logging"
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/libiec61850/hal/inc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/libiec61850/config"
+  )
+
+  target_compile_definitions(studio-tests PRIVATE _WIN32_WINNT=0x0A00 NOMINMAX)
+
+  target_link_libraries(studio-tests PRIVATE
+    iec61850
+  )
+
+  set_target_properties(studio-tests PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/backend/bin"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/backend/bin"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/backend/bin"
+  )
+
+  if (MSVC)
+    target_compile_options(studio-tests PRIVATE /W4 /permissive- /utf-8)
+  else()
+    target_compile_options(studio-tests PRIVATE -Wall -Wextra -pedantic)
+  endif()
+
+  add_test(NAME studio-tests COMMAND studio-tests)
+endif()

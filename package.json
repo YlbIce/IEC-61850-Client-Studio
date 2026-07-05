@@ -9,6 +9,7 @@
     "start": "node scripts/run-electron.js",
     "dev": "node scripts/run-electron.js --dev",
     "check": "node --check src/main/main.js && node --check src/preload/preload.js && node --check src/renderer/renderer.js",
+    "test": "node scripts/run-tests.js",
     "dist": "npm run build:backend && npm run check && electron-builder --win nsis portable"
   },
   "keywords": [

@@ -1,0 +1,10 @@
+{
+	"InstallScripts" : 
+	[
+		"D:/WORKSPACE/Electron/Iec61850ClientStudio/backend/build-tests/cmake_install.cmake",
+		"D:/WORKSPACE/Electron/Iec61850ClientStudio/backend/build-tests/third_party/libiec61850/cmake_install.cmake",
+		"D:/WORKSPACE/Electron/Iec61850ClientStudio/backend/build-tests/third_party/libiec61850/hal/cmake_install.cmake",
+		"D:/WORKSPACE/Electron/Iec61850ClientStudio/backend/build-tests/third_party/libiec61850/src/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
