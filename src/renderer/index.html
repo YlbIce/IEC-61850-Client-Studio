@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self';" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IEC 61850 Client Studio</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="titlebar">
+        <div class="brand">
+          <span class="brand-mark">61850</span>
+          <div>
+            <strong>IEC 61850 Client Studio</strong>
+            <span id="subtitle">C++ gRPC backend / libiec61850</span>
+          </div>
+        </div>
+        <div class="connection-strip">
+          <span id="connLamp" class="lamp"></span>
+          <span id="connState">DISCONNECTED</span>
+          <span id="connTarget">127.0.0.1:102</span>
+        </div>
+      </header>
+
+      <div id="toolbar" class="toolbar" role="toolbar">
+        <button data-action="connect:open" title="连接 IED">连接</button>
+        <button data-action="connect:mock" title="连接模拟站">模拟</button>
+        <button data-action="connect:disconnect" title="断开连接">断开</button>
+        <span class="toolbar-separator"></span>
+        <button data-action="model:refresh" title="刷新在线模型">刷新模型</button>
+        <button data-action="object:read" title="读取选中数据对象">读取</button>
+        <button data-action="watch:add" title="加入监视表">监视</button>
+        <span class="toolbar-separator"></span>
+        <button data-action="module:detach" title="将当前子页面作为独立窗口打开">独立窗口</button>
+        <button data-action="layout:reset" title="重置工作区布局">重置布局</button>
+      </div>
+
+      <main id="workspace" class="workspace">
+        <aside id="leftPane" class="pane left-pane">
+          <div class="pane-header">
+            <span>工程与模型</span>
+            <button data-action="pane:toggle" data-pane="left" title="隐藏工程树">×</button>
+          </div>
+          <div class="connect-box">
+            <label>IED 地址</label>
+            <div class="inline-fields">
+              <input id="hostInput" value="127.0.0.1" />
+              <input id="portInput" value="102" />
+            </div>
+          </div>
+          <nav class="module-list" id="moduleList"></nav>
+          <div class="tree-filter">
+            <input id="treeFilter" placeholder="过滤 LD / LN / DO / DA" />
+          </div>
+          <div id="modelTree" class="model-tree"></div>
+        </aside>
+
+        <div id="leftSplitter" class="splitter vertical" data-splitter="left"></div>
+
+        <section class="center-area">
+          <div id="tabs" class="tabs"></div>
+          <div id="pageHost" class="page-host"></div>
+        </section>
+
+        <div id="rightSplitter" class="splitter vertical" data-splitter="right"></div>
+
+        <aside id="rightPane" class="pane right-pane">
+          <div class="pane-header">
+            <span>属性</span>
+            <button data-action="pane:toggle" data-pane="right" title="隐藏属性面板">×</button>
+          </div>
+          <div id="propertyPanel" class="property-panel"></div>
+        </aside>
+
+        <div id="bottomSplitter" class="splitter horizontal" data-splitter="bottom"></div>
+
+        <section id="bottomPane" class="pane bottom-pane">
+          <div class="pane-header">
+            <span>事件与通信</span>
+            <button data-action="pane:toggle" data-pane="bottom" title="隐藏事件面板">×</button>
+          </div>
+          <div id="eventLog" class="event-log"></div>
+        </section>
+      </main>
+
+      <footer class="statusbar">
+        <span id="statusText">Ready</span>
+        <span id="modelStats">LD 0 / LN 0 / DO 0 / DA 0</span>
+        <span id="trafficStats">REQ 0 / RSP 0 / RPT 0</span>
+      </footer>
+    </div>
+
+    <div id="busyOverlay" class="busy-overlay" hidden>
+      <div class="busy-panel">
+        <div id="busyTitle" class="busy-title">正在处理</div>
+        <div id="busyMessage" class="busy-message">请稍候...</div>
+        <div class="progress-track"><div class="progress-bar"></div></div>
+      </div>
+    </div>
+
+    <div id="contextMenu" class="context-menu" hidden></div>
+
+    <dialog id="connectDialog" class="dialog">
+      <form method="dialog" class="dialog-panel">
+        <div class="dialog-title">连接 IED</div>
+        <label>主机地址<input id="dialogHost" value="127.0.0.1" /></label>
+        <label>端口<input id="dialogPort" value="102" /></label>
+        <label class="checkbox-line"><input id="dialogMock" type="checkbox" /> 使用模拟站</label>
+        <menu>
+          <button value="cancel">取消</button>
+          <button id="dialogConnect" value="default">连接</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="writeDialog" class="dialog">
+      <form method="dialog" class="dialog-panel">
+        <div class="dialog-title">写入数据对象</div>
+        <label>引用<input id="writeRef" /></label>
+        <label>FC<input id="writeFc" /></label>
+        <label>类型
+          <select id="writeType">
+            <option value="boolean">boolean</option>
+            <option value="float">float</option>
+            <option value="integer">integer</option>
+            <option value="string">string</option>
+          </select>
+        </label>
+        <label>值<input id="writeValue" /></label>
+        <menu>
+          <button value="cancel">取消</button>
+          <button id="dialogWrite" value="default">写入</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="reportDialog" class="dialog">
+      <form method="dialog" class="dialog-panel report-dialog-panel">
+        <div class="dialog-title">报告控制块参数</div>
+        <label>RCB 引用<input id="reportRef" readonly /></label>
+        <label>RptID<input id="reportRptId" /></label>
+        <label>DatSet<input id="reportDataSet" /></label>
+        <div class="dialog-grid-two">
+          <label>BufTm(ms)<input id="reportBufTm" type="number" min="0" /></label>
+          <label>IntgPd(ms)<input id="reportIntgPd" type="number" min="0" /></label>
+        </div>
+        <label>TrgOps 位掩码<input id="reportTrgOps" placeholder="如 19 = dchg+qchg+GI" /></label>
+        <label>OptFlds 位掩码<input id="reportOptFlds" placeholder="如 31 = seq+time+reason+datSet+dataRef" /></label>
+        <div class="dialog-grid-two">
+          <label class="checkbox-line"><input id="reportEnabled" type="checkbox" /> 启用 RptEna</label>
+          <label class="checkbox-line"><input id="reportBuffered" type="checkbox" disabled /> BRCB</label>
+          <label class="checkbox-line"><input id="reportGi" type="checkbox" /> 触发 GI</label>
+          <label class="checkbox-line"><input id="reportPurgeBuf" type="checkbox" /> PurgeBuf</label>
+          <label class="checkbox-line"><input id="reportReservation" type="checkbox" /> Resv</label>
+          <label>ResvTms(s)<input id="reportResvTms" type="number" min="0" /></label>
+        </div>
+        <div class="empty-note">启用前会先安装本客户端的报告回调，再下发 RCB 参数；真实设备是否接受 Resv、PurgeBuf、GI 取决于服务端实现。</div>
+        <menu>
+          <button value="cancel">取消</button>
+          <button id="dialogReportApply" value="default">下发并启用</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <script src="./renderer.js"></script>
+  </body>
+</html>

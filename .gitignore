@@ -1,0 +1,22 @@
+node_modules/
+.tmp/
+backend/build/
+backend/bin/
+backend/generated/
+dist/
+out/
+*.log
+*.tmp
+*.user
+*.suo
+*.pdb
+*.ilk
+*.obj
+*.exe
+*.dll
+
+# libiec61850 build artifacts
+third_party/libiec61850/build-wpf-native/
+third_party/libiec61850/dotnet/**/bin/
+third_party/libiec61850/dotnet/**/obj/
+third_party/libiec61850/**/*.cache

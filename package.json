@@ -1,0 +1,27 @@
+{
+  "name": "iec61850-client-studio",
+  "version": "0.1.0",
+  "description": "IEC 61850 desktop client based on Electron, C++ gRPC backend, Protobuf, and libiec61850.",
+  "main": "src/main/main.js",
+  "private": true,
+  "scripts": {
+    "build:backend": "node scripts/build-backend.js",
+    "start": "node scripts/run-electron.js",
+    "dev": "node scripts/run-electron.js --dev",
+    "check": "node --check src/main/main.js && node --check src/preload/preload.js && node --check src/renderer/renderer.js"
+  },
+  "keywords": [
+    "iec61850",
+    "libiec61850",
+    "electron",
+    "cpp",
+    "grpc"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@grpc/grpc-js": "^1.14.4",
+    "@grpc/proto-loader": "^0.8.1",
+    "electron": "39.8.10"
+  }
+}

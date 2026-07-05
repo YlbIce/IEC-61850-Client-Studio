@@ -1,0 +1,342 @@
+syntax = "proto3";
+
+package iec61850studio;
+
+service Iec61850Studio {
+  rpc GetServerInfo(Empty) returns (ServerInfo);
+  rpc GetWorkspace(Empty) returns (WorkspaceState);
+  rpc StreamWorkspace(Empty) returns (stream WorkspaceState);
+
+  rpc Connect(ConnectRequest) returns (CommandReply);
+  rpc Disconnect(DisconnectRequest) returns (CommandReply);
+  rpc RefreshModel(RefreshModelRequest) returns (ModelTree);
+
+  rpc Browse(BrowseRequest) returns (BrowseResponse);
+  rpc ReadObject(ReadObjectRequest) returns (DataValue);
+  rpc InspectDataObject(InspectDataObjectRequest) returns (DataObjectInspection);
+  rpc WriteObject(WriteObjectRequest) returns (CommandReply);
+  rpc ReadDataSet(ReadDataSetRequest) returns (DataSetSnapshot);
+  rpc CreateDataSet(CreateDataSetRequest) returns (CommandReply);
+  rpc DeleteDataSet(DeleteDataSetRequest) returns (CommandReply);
+
+  rpc GetReportControlBlocks(ReportQuery) returns (ReportControlBlockList);
+  rpc SetReportControlBlock(ReportControlBlock) returns (CommandReply);
+  rpc StreamReports(ReportStreamRequest) returns (stream ReportNotification);
+
+  rpc OperateControl(ControlRequest) returns (CommandReply);
+  rpc GetFiles(FileQuery) returns (FileList);
+  rpc ReadFile(FileReadRequest) returns (FileContent);
+  rpc DeleteFile(FileDeleteRequest) returns (CommandReply);
+  rpc GetLogs(LogQuery) returns (LogEntryList);
+  rpc GetSettingGroups(SettingGroupRequest) returns (SettingGroupState);
+  rpc SetActiveSettingGroup(SetSettingGroupRequest) returns (CommandReply);
+
+  rpc SubscribeGoose(GooseSubscriptionRequest) returns (CommandReply);
+  rpc SubscribeSampledValues(SvSubscriptionRequest) returns (CommandReply);
+  rpc GetTraffic(Empty) returns (TrafficSnapshot);
+}
+
+message Empty {}
+
+message ServerInfo {
+  string name = 1;
+  string version = 2;
+  string lib_name = 3;
+  string lib_version = 4;
+  string transport = 5;
+}
+
+message ConnectRequest {
+  string host = 1;
+  int32 port = 2;
+  bool use_tls = 3;
+  string username = 4;
+  string password = 5;
+  bool mock = 6;
+  int32 timeout_ms = 7;
+}
+
+message DisconnectRequest {
+  string reason = 1;
+}
+
+message RefreshModelRequest {
+  bool force = 1;
+}
+
+message CommandReply {
+  bool ok = 1;
+  string message = 2;
+}
+
+message ConnectionState {
+  bool connected = 1;
+  string host = 2;
+  int32 port = 3;
+  bool mock = 4;
+  bool tls = 5;
+  string state = 6;
+  string message = 7;
+  string connected_since = 8;
+}
+
+message WorkspaceState {
+  ServerInfo server = 1;
+  ConnectionState connection = 2;
+  ModelTree model = 3;
+  repeated DataValue watch_values = 4;
+  repeated ReportNotification recent_reports = 5;
+  repeated EventLog events = 6;
+  TrafficSnapshot traffic = 7;
+  repeated LiveDataValue live_values = 8;
+}
+
+message ModelTree {
+  repeated ModelNode roots = 1;
+  int32 logical_devices = 2;
+  int32 logical_nodes = 3;
+  int32 data_objects = 4;
+  int32 data_attributes = 5;
+  string source = 6;
+}
+
+message ModelNode {
+  string id = 1;
+  string name = 2;
+  string reference = 3;
+  string kind = 4;
+  string fc = 5;
+  string type = 6;
+  bool readable = 7;
+  bool writable = 8;
+  bool controllable = 9;
+  repeated ModelNode children = 10;
+  string linked_reference = 11;
+  string link_kind = 12;
+  string description = 13;
+}
+
+message BrowseRequest {
+  string reference = 1;
+  string kind = 2;
+  string fc = 3;
+}
+
+message BrowseResponse {
+  string reference = 1;
+  repeated ModelNode children = 2;
+}
+
+message ReadObjectRequest {
+  string reference = 1;
+  string fc = 2;
+}
+
+message WriteObjectRequest {
+  string reference = 1;
+  string fc = 2;
+  string value = 3;
+  string type = 4;
+}
+
+message DataValue {
+  string reference = 1;
+  string fc = 2;
+  string type = 3;
+  string value = 4;
+  string quality = 5;
+  string timestamp = 6;
+  string source = 7;
+  string error = 8;
+}
+
+message InspectDataObjectRequest {
+  string object_reference = 1;
+  string fc = 2;
+}
+
+message DataObjectInspection {
+  string object_reference = 1;
+  repeated DataValue attributes = 2;
+}
+
+message ReadDataSetRequest {
+  string reference = 1;
+}
+
+message DataSetMember {
+  string reference = 1;
+  string fc = 2;
+  string object_reference = 3;
+  string description = 4;
+}
+
+message DataSetPoint {
+  string object_reference = 1;
+  string member_reference = 2;
+  string fc = 3;
+  string du = 4;
+  DataValue value = 5;
+  string quality = 6;
+  string timestamp = 7;
+}
+
+message DataSetSnapshot {
+  string reference = 1;
+  bool deletable = 2;
+  repeated DataSetMember members = 3;
+  repeated DataValue values = 4;
+  repeated DataSetPoint points = 5;
+}
+
+message CreateDataSetRequest {
+  string reference = 1;
+  repeated DataSetMember members = 2;
+}
+
+message DeleteDataSetRequest {
+  string reference = 1;
+}
+
+message ReportQuery {
+  string logical_node = 1;
+}
+
+message ReportControlBlock {
+  string reference = 1;
+  string rpt_id = 2;
+  string data_set = 3;
+  bool enabled = 4;
+  bool buffered = 5;
+  int32 buf_time_ms = 6;
+  int32 integrity_period_ms = 7;
+  string trigger_options = 8;
+  string optional_fields = 9;
+  uint32 conf_rev = 10;
+  uint32 sq_num = 11;
+  bool gi = 12;
+  bool purge_buf = 13;
+  bool reservation = 14;
+  int32 reservation_time_s = 15;
+  string owner = 16;
+}
+
+message ReportControlBlockList {
+  repeated ReportControlBlock blocks = 1;
+}
+
+message ReportStreamRequest {
+  string rcb_reference = 1;
+}
+
+message ReportNotification {
+  string time = 1;
+  string rcb_reference = 2;
+  string data_set = 3;
+  string reason = 4;
+  repeated DataValue values = 5;
+}
+
+message LiveDataValue {
+  string data_set = 1;
+  DataValue value = 2;
+}
+
+message ControlRequest {
+  string reference = 1;
+  string ctl_model = 2;
+  string value = 3;
+  bool select_before_operate = 4;
+  int32 operate_timeout_ms = 5;
+}
+
+message FileQuery {
+  string directory = 1;
+}
+
+message FileEntry {
+  string name = 1;
+  string path = 2;
+  bool directory = 3;
+  int64 size = 4;
+  string modified = 5;
+}
+
+message FileList {
+  string directory = 1;
+  repeated FileEntry entries = 2;
+}
+
+message FileReadRequest {
+  string path = 1;
+}
+
+message FileContent {
+  string path = 1;
+  bytes data = 2;
+  string text_preview = 3;
+}
+
+message FileDeleteRequest {
+  string path = 1;
+}
+
+message LogQuery {
+  string logical_node = 1;
+  string log_reference = 2;
+  string since = 3;
+}
+
+message LogEntry {
+  string time = 1;
+  string reference = 2;
+  string reason = 3;
+  repeated DataValue values = 4;
+}
+
+message LogEntryList {
+  repeated LogEntry entries = 1;
+}
+
+message SettingGroupRequest {
+  string logical_node = 1;
+}
+
+message SettingGroupState {
+  string logical_node = 1;
+  int32 active_group = 2;
+  int32 editable_group = 3;
+  int32 count = 4;
+}
+
+message SetSettingGroupRequest {
+  string logical_node = 1;
+  int32 active_group = 2;
+}
+
+message GooseSubscriptionRequest {
+  string app_id = 1;
+  string interface_name = 2;
+  string destination_mac = 3;
+}
+
+message SvSubscriptionRequest {
+  string sv_id = 1;
+  string interface_name = 2;
+}
+
+message TrafficSnapshot {
+  int64 requests = 1;
+  int64 responses = 2;
+  int64 reports = 3;
+  int64 goose_frames = 4;
+  int64 sampled_value_frames = 5;
+  double average_latency_ms = 6;
+}
+
+message EventLog {
+  string time = 1;
+  string level = 2;
+  string source = 3;
+  string message = 4;
+}
