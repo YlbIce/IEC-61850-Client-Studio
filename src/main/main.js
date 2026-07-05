@@ -4,9 +4,12 @@ const path = require('path');
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 
-const rootDir = path.resolve(__dirname, '..', '..');
-const protoPath = path.join(rootDir, 'proto', 'iec61850studio.proto');
-const backendExe = path.join(rootDir, 'backend', 'bin', 'iec61850-client-backend.exe');
+const isPackaged = app.isPackaged;
+const appRoot = path.resolve(__dirname, '..', '..');
+const protoPath = path.join(appRoot, 'proto', 'iec61850studio.proto');
+const backendExe = isPackaged
+  ? path.join(process.resourcesPath, 'backend', 'bin', 'iec61850-client-backend.exe')
+  : path.join(appRoot, 'backend', 'bin', 'iec61850-client-backend.exe');
 const grpcAddress = '127.0.0.1:48650';
 
 let backendProcess = null;
@@ -104,14 +107,14 @@ function createWindow(options = {}) {
     backgroundColor: '#e7eaee',
     show: false,
     webPreferences: {
-      preload: path.join(rootDir, 'src', 'preload', 'preload.js'),
+      preload: path.join(appRoot, 'src', 'preload', 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false
     }
   });
 
-  const htmlPath = path.join(rootDir, 'src', 'renderer', 'index.html');
+  const htmlPath = path.join(appRoot, 'src', 'renderer', 'index.html');
   win.loadFile(htmlPath, { query: Object.fromEntries(query) });
   win.once('ready-to-show', () => win.show());
   win.on('closed', () => windows.delete(win));

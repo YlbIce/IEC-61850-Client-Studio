@@ -5,6 +5,7 @@ backend/bin/
 backend/generated/
 dist/
 out/
+release/
 *.log
 *.tmp
 *.user

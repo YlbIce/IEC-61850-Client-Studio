@@ -8,7 +8,8 @@
     "build:backend": "node scripts/build-backend.js",
     "start": "node scripts/run-electron.js",
     "dev": "node scripts/run-electron.js --dev",
-    "check": "node --check src/main/main.js && node --check src/preload/preload.js && node --check src/renderer/renderer.js"
+    "check": "node --check src/main/main.js && node --check src/preload/preload.js && node --check src/renderer/renderer.js",
+    "dist": "npm run build:backend && npm run check && electron-builder --win nsis portable"
   },
   "keywords": [
     "iec61850",
@@ -21,7 +22,50 @@
   "license": "MIT",
   "dependencies": {
     "@grpc/grpc-js": "^1.14.4",
-    "@grpc/proto-loader": "^0.8.1",
-    "electron": "39.8.10"
+    "@grpc/proto-loader": "^0.8.1"
+  },
+  "devDependencies": {
+    "electron": "39.8.10",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.ybl.iec61850clientstudio",
+    "productName": "IEC61850ClientStudio",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "package.json",
+      "src/**/*",
+      "proto/**/*",
+      "README.md"
+    ],
+    "extraResources": [
+      {
+        "from": "backend/bin",
+        "to": "backend/bin",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "artifactName": "${productName}-Setup-${version}-${arch}.${ext}",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "IEC61850ClientStudio"
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}-${arch}.${ext}"
+    }
   }
 }
