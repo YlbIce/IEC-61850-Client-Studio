@@ -18,6 +18,11 @@ set(GENERATED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/backend/generated")
 
 add_executable(iec61850-client-backend
   backend/src/main.cpp
+  backend/src/utils.cpp
+  backend/src/studio_model.cpp
+  backend/src/studio_model_device.cpp
+  backend/src/studio_model_mock.cpp
+  backend/src/grpc_service.cpp
   "${GENERATED_DIR}/iec61850studio.pb.cc"
   "${GENERATED_DIR}/iec61850studio.grpc.pb.cc"
 )
