@@ -1,6 +1,7 @@
 node_modules/
 .tmp/
 backend/build/
+backend/build-tests/
 backend/bin/
 backend/generated/
 dist/
