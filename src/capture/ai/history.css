@@ -1,0 +1,62 @@
+header input {
+  width: 340px;
+  padding: 7px 10px;
+  border: 1px solid #bccadb;
+  border-radius: 4px;
+  font: inherit;
+}
+.intro {
+  margin: 16px 24px;
+  color: #647389;
+  font-size: 13px;
+}
+main {
+  padding: 0 24px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  table-layout: fixed;
+}
+th,
+td {
+  text-align: left;
+  border-bottom: 1px solid #dce3ec;
+  padding: 14px;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+th {
+  background: #eaf0f8;
+  position: sticky;
+  top: 0;
+}
+th:first-child {
+  width: 190px;
+}
+th:nth-child(3) {
+  width: 145px;
+}
+th:last-child {
+  width: 165px;
+}
+td small {
+  display: block;
+  color: #718098;
+  font-size: 12px;
+  margin-top: 6px;
+}
+td button {
+  margin: 0 5px 5px 0;
+}
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+}
+tr:hover td {
+  background: #f8faff;
+}

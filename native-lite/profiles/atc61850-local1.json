@@ -1,0 +1,17 @@
+{
+  "host": "192.168.2.227",
+  "port": 102,
+  "addressMode": "custom",
+  "localApTitle": "1.3.9999.23",
+  "localAeQualifier": 23,
+  "remoteApTitle": "1.3.9999.33",
+  "remoteAeQualifier": 33,
+  "localT": "0001",
+  "localS": "0001",
+  "localP": "00000001",
+  "remoteT": "0001",
+  "remoteS": "0001",
+  "remoteP": "00000001",
+  "connectTimeout": 10000,
+  "requestTimeout": 10000
+}

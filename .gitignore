@@ -21,4 +21,13 @@ release/
 third_party/libiec61850/build-wpf-native/
 third_party/libiec61850/dotnet/**/bin/
 third_party/libiec61850/dotnet/**/obj/
+third_party/libiec61850/tools/model_generator_dotnet/**/bin/
+third_party/libiec61850/tools/model_generator_dotnet/**/obj/
 third_party/libiec61850/**/*.cache
+
+# capture backend build artifacts
+backend/capture/bin/
+backend/capture/build/
+
+# UI test script outputs
+/*-result.json

@@ -1,3 +1,7 @@
+## 0.2.0 桌面界面与报文 AI
+
+界面与 Service Studio 统一，支持亮色、暗色、跟随系统和独立页窗口。通过工具栏“报文分析 / AI”打开可选抓包解析模块，包含 PCAP/PCAPNG、MMS/TCP、离线回放及 DeepSeek 学习诊断。具体入口、密钥保存、功能边界与验证见 [迁移说明](docs/CLIENT-UI-MIGRATION.md)。发布目录使用 ZIP 便携版，解压后运行 IEC61850ClientStudio.exe。
+
 # IEC 61850 Client Studio
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)

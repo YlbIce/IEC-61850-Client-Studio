@@ -1,0 +1,385 @@
+:root {
+  font:
+    13px "Microsoft YaHei UI",
+    "Segoe UI",
+    sans-serif;
+  color: #253449;
+  background: #edf0f4;
+  color-scheme: light;
+}
+.packets col:nth-child(1) {
+  width: 72px;
+}
+.packets col:nth-child(2) {
+  width: 105px;
+}
+.packets col:nth-child(3),
+.packets col:nth-child(4) {
+  width: 145px;
+}
+.packets col:nth-child(5) {
+  width: 130px;
+}
+.packets col:nth-child(6) {
+  width: 60px;
+}
+#mms-ports {
+  width: 85px;
+}
+.mapping-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px;
+  border-bottom: 1px solid #d7dfe8;
+}
+.mapping-row span {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+#mapping-list {
+  max-height: 220px;
+  margin-top: 10px;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+button {
+  border: 1px solid #aeb9c9;
+  border-radius: 2px;
+  background: linear-gradient(#fff, #edf0f5);
+  padding: 5px 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+button:hover:not(:disabled) {
+  background: #e6effb;
+  border-color: #7297c5;
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid #3677bd;
+  outline-offset: 1px;
+}
+input,
+select {
+  border: 1px solid #aab7c7;
+  background: white;
+  padding: 5px 7px;
+  border-radius: 1px;
+}
+input.invalid {
+  border-color: #c23d34;
+  background: #fff0ee;
+}
+.toolbar,
+.filterbar,
+.playbar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px;
+  border-bottom: 1px solid #bac5d3;
+  flex-shrink: 0;
+}
+.toolbar {
+  height: 43px;
+}
+.separator {
+  height: 24px;
+  border-left: 1px solid #c0c8d3;
+  margin: 0 4px;
+}
+.spacer {
+  flex: 1;
+}
+#mode {
+  font-size: 12px;
+  color: #61738a;
+}
+#availability {
+  padding: 7px 12px;
+  background: #eaf2fb;
+  color: #2b5787;
+  border-bottom: 1px solid #bdcde0;
+}
+#availability.error {
+  background: #fff0e7;
+  color: #8d3c13;
+}
+#availability:empty {
+  display: none;
+}
+.filterbar #filter {
+  flex: 1;
+  min-width: 120px;
+}
+.filterbar select {
+  max-width: 180px;
+}
+main {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(150px, 1.3fr) minmax(150px, 1fr) minmax(
+      160px,
+      0.8fr
+    );
+  gap: 4px;
+  padding: 4px;
+}
+.packet-pane,
+.protocol-pane,
+.bytes-pane,
+.replay-pane {
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border: 1px solid #b5c1d0;
+  min-height: 0;
+  min-width: 0;
+}
+.pane-title {
+  height: 29px;
+  flex-shrink: 0;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 9px;
+  border-bottom: 1px solid #c4cedb;
+  font-size: 12px;
+}
+.pane-title b {
+  color: #294b71;
+}
+.pane-title button {
+  font-size: 11px;
+  padding: 1px 8px;
+}
+.pane-title span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #68788c;
+}
+#file-label {
+  flex: 1;
+}
+.scroll,
+#packet-scroll,
+.value-scroll {
+  overflow: auto;
+  min-height: 0;
+  flex: 1;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed;
+  font-size: 12px;
+}
+th {
+  height: 29px;
+  background: #edf1f6;
+  border-right: 1px solid #d7dfe8;
+  border-bottom: 1px solid #becbd9;
+  text-align: left;
+  padding: 4px 8px;
+  font-weight: 500;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+td {
+  padding: 4px 8px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  height: 27px;
+  border-bottom: 1px solid #eef1f4;
+}
+tr[data-frame] {
+  cursor: default;
+}
+tr[data-frame]:nth-child(even) {
+  background: #f4f8fa;
+}
+tr[data-frame].selected {
+  background: #cde3fc;
+  color: #153f70;
+}
+tr[data-frame]:hover {
+  background: #e3edfa;
+}
+tr.spacer-row td {
+  padding: 0;
+  border: 0;
+}
+.detail-pane {
+  display: grid;
+  grid-template-columns: 55% 1fr;
+  gap: 4px;
+}
+#protocol-tree {
+  padding: 7px;
+  font:
+    12px Consolas,
+    "Microsoft YaHei UI",
+    monospace;
+}
+details {
+  margin-left: 14px;
+}
+#protocol-tree > details {
+  margin-left: 0;
+}
+summary {
+  padding: 3px 0;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.leaf {
+  padding: 3px 0 3px 17px;
+  overflow-wrap: anywhere;
+}
+pre {
+  margin: 0;
+  padding: 10px;
+  font:
+    12px/1.7 Consolas,
+    monospace;
+  color: #324b64;
+  white-space: pre;
+}
+#correlation {
+  padding: 0 9px;
+  font-size: 12px;
+  color: #44678a;
+}
+#correlation:not(:empty) {
+  padding: 5px 9px;
+  border-bottom: 1px solid #dbe3ed;
+}
+.playbar {
+  height: 38px;
+  padding: 4px 8px;
+}
+.playbar button,
+.playbar select {
+  padding: 3px 8px;
+}
+#timeline {
+  flex: 1;
+  min-width: 100px;
+  padding: 0;
+  accent-color: #346eaa;
+}
+#replay-time {
+  width: 82px;
+  text-align: right;
+}
+.empty {
+  color: #8190a2;
+  padding: 14px;
+  font-size: 12px;
+}
+.value-scroll th:first-child {
+  width: 28%;
+}
+.value-scroll th:nth-child(2) {
+  width: 9%;
+}
+.value-scroll th:nth-child(3) {
+  width: 13%;
+}
+.value-scroll th:nth-child(4) {
+  width: 9%;
+}
+footer {
+  height: 25px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  border-top: 1px solid #b4c1d0;
+  gap: 10px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+#status {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#status.error {
+  color: #b03022;
+}
+dialog {
+  width: 690px;
+  max-width: 90vw;
+  border: 1px solid #7c90a8;
+  border-radius: 3px;
+  padding: 20px;
+  box-shadow: 0 12px 45px #182b4540;
+  background: #f2f5f9;
+}
+dialog::backdrop {
+  background: #182b4525;
+}
+dialog h2 {
+  font-size: 17px;
+  margin: 0 0 16px;
+  color: #294b71;
+}
+dialog label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 13px 0;
+}
+dialog p {
+  color: #6b7b8f;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.path-field {
+  display: flex;
+  gap: 6px;
+}
+.path-field input {
+  flex: 1;
+  min-width: 0;
+}
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+#sessions-dialog {
+  width: 950px;
+}
+#sessions-content {
+  max-height: 450px;
+}
+#goto-dialog {
+  width: 370px;
+}

@@ -10,6 +10,8 @@
 #include <iostream>
 #include <memory>
 #include <thread>
+#include <string>
+#include <regex>
 
 #include <grpcpp/grpcpp.h>
 
@@ -20,21 +22,28 @@ namespace {
 constexpr char kServerAddress[] = "127.0.0.1:48650";
 }  // namespace
 
-int main() {
+int main(int argc, char** argv) {
+  std::string address = kServerAddress;
+  if(argc == 3 && std::string(argv[1]) == "--listen") {
+    address = argv[2];
+    if(!std::regex_match(address, std::regex("127\\.0\\.0\\.1:[0-9]{1,5}"))) return 2;
+    const auto port=std::stoi(address.substr(address.find(':')+1));
+    if(port<1 || port>65535) return 2;
+  } else if(argc != 1) return 2;
   StudioModel model;
   StudioService service(model);
 
   grpc::ServerBuilder builder;
-  builder.AddListeningPort(kServerAddress, grpc::InsecureServerCredentials());
+  builder.AddListeningPort(address, grpc::InsecureServerCredentials());
   builder.RegisterService(&service);
 
   std::unique_ptr<grpc::Server> server(builder.BuildAndStart());
   if (!server) {
-    std::cerr << "Failed to start IEC 61850 Client Studio backend on " << kServerAddress << std::endl;
+    std::cerr << "Failed to start IEC 61850 Client Studio backend on " << address << std::endl;
     return 1;
   }
 
-  std::cout << "IEC 61850 Client Studio backend listening on grpc://" << kServerAddress << std::endl;
+  std::cout << "IEC 61850 Client Studio backend listening on grpc://" << address << std::endl;
 
   while (!model.stopping()) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));

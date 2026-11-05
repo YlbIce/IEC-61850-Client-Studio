@@ -1,0 +1,7 @@
+/build/
+/release/
+/*-log.txt
+/test-results.txt
+/*.png
+/test-results.xml
+/packaged-smoke.json

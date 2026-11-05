@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'none'; connect-src 'none'"
+    />
+    <title>AI 分析与学习答案</title>
+    <link rel="stylesheet" href="answer.css" />
+    <link rel="stylesheet" href="../../shared/theme.css" />
+    <script src="../../shared/theme-renderer.js"></script>
+  </head>
+  <body>
+    <header>
+      <strong>AI 分析与学习答案</strong
+      ><button data-command="owner">返回报文分析</button
+      ><button data-command="copy">复制全文</button
+      ><button data-command="export">导出 Markdown</button>
+    </header>
+    <div id="incomplete" hidden role="status">
+      答案未完成：以下是尚未通过完整事实校验的草稿，已保存到历史。
+    </div>
+    <div id="stale" hidden>
+      原捕获上下文已切换。本窗口保留历史答案，证据跳转与筛选已禁用。
+    </div>
+    <div class="layout">
+      <nav>
+        <a href="#explanation">答案与讲解</a><a href="#evidence">证据事实</a
+        ><a href="#limits">限制与范围</a><a href="#next">下一步建议</a
+        ><a href="#context">报文上下文</a>
+      </nav>
+      <main>
+        <div class="question">
+          <small>本次问题</small>
+          <h1 id="question"></h1>
+          <p id="meta"></p>
+          <p id="source"></p>
+        </div>
+        <section id="explanation">
+          <h2>答案与讲解</h2>
+          <article id="answer"></article>
+        </section>
+        <section id="evidence">
+          <h2>证据事实 <small>点击帧号核查原始报文</small></h2>
+          <div id="facts"></div>
+          <button id="filter" hidden>应用建议筛选</button>
+        </section>
+        <section id="limits">
+          <h2>限制与覆盖范围</h2>
+          <ul id="limitations"></ul>
+        </section>
+        <section id="next">
+          <h2>下一步建议</h2>
+          <ol id="checks"></ol>
+        </section>
+        <section id="context">
+          <h2>保存的报文上下文</h2>
+          <p>
+            以下为本次实际提供给 AI
+            的有限解析证据快照，可离线查看；原始捕获文件未复制到历史中。
+          </p>
+          <div id="context-data"></div>
+        </section>
+      </main>
+    </div>
+    <footer id="status" role="status">AI 解释需结合原始证据核对</footer>
+    <script src="answer.js"></script>
+  </body>
+</html>

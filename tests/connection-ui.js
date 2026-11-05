@@ -1,0 +1,27 @@
+const {app,BrowserWindow}=require('electron');const path=require('path'),fs=require('fs'),assert=require('assert');
+const root=path.resolve(__dirname,'..');app.setPath('userData',path.join(root,'.tmp/connection-regression-'+Date.now()));
+require('../src/main/main');
+const delay=ms=>new Promise(r=>setTimeout(r,ms));const wait=async fn=>{for(let i=0;i<200;i++){try{const v=await fn();if(v)return v;}catch{}await delay(100)}throw Error('Timeout')};
+app.whenReady().then(async()=>{let backend;const result={};try{
+ const win=await wait(()=>BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().endsWith('/renderer/index.html')));win.show();win.focus();const js=c=>win.webContents.executeJavaScript(c);
+ await wait(()=>js('!!state.workspace?.server'));
+ const serviceRoot=path.resolve(root,'../Iec61850ServiceStudio');const {Backend}=require(path.join(serviceRoot,'src/main/backend'));backend=new Backend(serviceRoot,path.join(serviceRoot,'backend/bin/iec61850-service-backend.exe'));await backend.start();
+ const p=require(path.join(serviceRoot,'src/shared/project')).defaultProject();p.host='127.0.0.2';p.port=18152;await backend.call('Apply',p);await backend.call('Start');
+ await js(`handleAction('connect:open');document.querySelector('#dialogHost').value='127.0.0.2';document.querySelector('#dialogPort').value='18152';document.querySelector('#dialogConnect').click()`);
+ await wait(()=>js('!state.busy'));result.click=await js('window.iec61850.getWorkspace().then(w=>w.connection)');
+ await js('disconnect()');
+ await js(`handleAction('connect:open');document.querySelector('#dialogHost').focus()`);
+ win.show();win.focus();await delay(100);
+ win.webContents.sendInputEvent({type:'keyDown',keyCode:'Return'});win.webContents.sendInputEvent({type:'char',keyCode:'\r'});win.webContents.sendInputEvent({type:'keyUp',keyCode:'Return'});await delay(1500);
+ result.dialog=await js('({open:document.querySelector("#connectDialog").open,focused:document.hasFocus(),active:document.activeElement?.id})');
+ result.enter=await js('window.iec61850.getWorkspace().then(w=>w.connection)');
+ await js('disconnect()');
+ const loaded=new Promise(r=>win.webContents.once('did-finish-load',r));win.webContents.reload();await loaded;
+ await wait(()=>js('!!state.workspace?.server'));
+ result.restored=await js('({host:document.querySelector("#hostInput").value,port:document.querySelector("#portInput").value})');
+ await js(`handleAction('connect:open');document.querySelector('#dialogPort').value='0';document.querySelector('#dialogConnect').click()`);
+ result.invalidRejected=await js('document.querySelector("#connectDialog").open && !state.busy');
+ await js('document.querySelector("#dialogConnectCancel").click()');
+ await backend.close();backend=null;
+ result.passed=result.click.connected && result.click.host==='127.0.0.2' && result.enter.connected && result.restored.host==='127.0.0.2' && result.restored.port==='18152' && result.invalidRejected;
+ }catch(e){result.error=e.stack;result.passed=false;}finally{await backend?.close();fs.writeFileSync(path.join(root,'connection-ui-result.json'),JSON.stringify(result));for(const w of BrowserWindow.getAllWindows())w.destroy();app.quit();}});

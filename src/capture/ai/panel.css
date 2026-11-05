@@ -1,0 +1,146 @@
+#analysis-workspace {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+#analysis-workspace > main {
+  min-width: 0;
+}
+#ai-panel {
+  width: 420px;
+  min-width: 330px;
+  max-width: 48vw;
+  border-left: 1px solid #b8c5d3;
+  background: #f8fafc;
+  overflow: auto;
+  flex-shrink: 0;
+  padding-bottom: 12px;
+}
+#ai-panel[hidden] {
+  display: none;
+}
+.ai-controls {
+  display: flex;
+  gap: 6px;
+  padding: 8px 10px;
+  flex-wrap: wrap;
+}
+#ai-panel textarea {
+  display: block;
+  width: calc(100% - 20px);
+  margin: 8px 10px;
+  padding: 8px;
+  resize: vertical;
+  font: inherit;
+  min-height: 72px;
+  border: 1px solid #b8c5d3;
+}
+#ai-course {
+  margin: 4px 10px;
+  padding: 8px;
+  border: 1px solid #c6d2df;
+  background: white;
+}
+#ai-course select {
+  width: 100%;
+  margin: 8px 0;
+}
+#ai-lesson-text {
+  line-height: 1.8;
+}
+#ai-quiz label {
+  display: block;
+  margin: 8px 0;
+}
+#ai-scope,
+#ai-status {
+  margin: 8px 12px;
+  font-size: 12px;
+  color: #496176;
+  line-height: 1.6;
+}
+.ai-consent {
+  display: block;
+  margin: 8px 12px;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.ai-consent input {
+  width: auto;
+}
+#ai-result {
+  margin: 10px 12px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+#ai-result .ai-answer {
+  white-space: pre-wrap;
+}
+#ai-result h3 {
+  font-size: 13px;
+  border-top: 1px solid #ccd6df;
+  padding-top: 10px;
+}
+#ai-result button {
+  margin: 4px;
+}
+#ai-settings-dialog {
+  max-width: 620px;
+}
+#ai-settings-path {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+#protocol-tree .leaf,
+#protocol-tree summary {
+  cursor: help;
+}
+#ai-status.error,
+#ai-settings-status.error {
+  color: #a12d24;
+}
+#ai-jump-options {
+  margin: 8px 10px;
+  padding: 8px;
+  border: 1px solid #c6d2df;
+  background: white;
+}
+#ai-jump-options label {
+  display: block;
+  margin: 8px 0;
+}
+#ai-jump-options input {
+  display: block;
+  width: 100%;
+  padding: 5px;
+}
+#ai-jump-result,
+#ai-connection-result {
+  margin: 8px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+#ai-jump-result pre,
+#ai-connection-result pre {
+  white-space: pre-wrap;
+  max-height: 240px;
+  overflow: auto;
+  font-size: 11px;
+}
+#ai-jump-result button,
+#ai-connection-result button {
+  margin: 3px;
+}
+#ai-jump-result table,
+#ai-connection-result table {
+  font-size: 11px;
+  width: 100%;
+  border-collapse: collapse;
+}
+#ai-jump-result td,
+#ai-connection-result td {
+  white-space: normal;
+  padding: 5px;
+  border-bottom: 1px solid #d5dde5;
+}

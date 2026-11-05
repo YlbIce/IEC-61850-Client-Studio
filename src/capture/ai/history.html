@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'none'"
+    />
+    <title>AI 对话历史</title>
+    <link rel="stylesheet" href="answer.css" />
+    <link rel="stylesheet" href="history.css" />
+    <link rel="stylesheet" href="../../shared/theme.css" />
+    <script src="../../shared/theme-renderer.js"></script>
+  </head>
+  <body>
+    <header>
+      <strong>AI 对话历史</strong
+      ><input
+        id="search"
+        type="search"
+        placeholder="搜索问题、捕获文件或模型"
+        aria-label="搜索历史"
+      /><button id="refresh">刷新</button>
+    </header>
+    <p class="intro">
+      每次问答自动保存到本地。打开记录可查看答案、证据及当时提供给 AI
+      的报文上下文；不需要 API Key，也不会调用云端。
+    </p>
+    <main>
+      <table>
+        <thead>
+          <tr>
+            <th>时间 / 模式</th>
+            <th>问题 / 捕获文件</th>
+            <th>状态 / 证据</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="records"></tbody>
+      </table>
+      <p id="empty" hidden>尚无匹配的对话记录</p>
+    </main>
+    <div class="pagination">
+      <button id="prev">上一页</button><span id="count"></span
+      ><button id="next">下一页</button>
+    </div>
+    <footer id="status" role="status"></footer>
+    <script src="history.js"></script>
+  </body>
+</html>

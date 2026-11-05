@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>IEC61850 报文抓取与分析</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="ai/panel.css" />
+    <link rel="stylesheet" href="../shared/theme.css" />
+    <script src="../shared/theme-renderer.js"></script>
+  </head>
+  <body>
+    <header class="toolbar">
+      <button data-action="open">打开文件…</button
+      ><span class="separator"></span
+      ><button data-action="capture-options">捕获选项…</button
+      ><button data-action="capture-start" id="start">▶ 开始捕获</button
+      ><button data-action="capture-stop" id="stop" disabled>
+        ■ 停止并分析</button
+      ><span class="separator"></span
+      ><button data-action="sessions">会话统计</button
+      ><button data-action="goto">定位报文…</button><span class="spacer"></span
+      ><button data-action="cancel" title="取消正在进行的文件分析">
+        取消分析</button
+      ><span class="spacer"></span
+      ><button data-action="ai-toggle">AI 学习 / 诊断</button
+      ><button data-action="ai-settings">AI 设置…</button
+      ><span id="mode">报文离线分析</span>
+    </header>
+    <div id="availability" role="status">正在检测可选分析模块…</div>
+    <div class="filterbar">
+      <label for="filter">显示过滤器</label
+      ><input
+        id="filter"
+        placeholder="mms 或 tcp.stream eq 0（Wireshark 语法）"
+        spellcheck="false"
+      /><button data-action="filter">应用</button
+      ><select id="preset" aria-label="业务过滤">
+        <option value="">全部报文</option>
+        <option value="mms">MMS</option>
+        <option value="mms.confirmed_RequestPDU_element">MMS 请求</option>
+        <option value="mms.confirmed_ResponsePDU_element">MMS 响应</option>
+        <option value="mms.informationReport_element">MMS 报告</option>
+        <option value="mms.confirmed_ErrorPDU_element">MMS 错误</option>
+        <option value="goose">GOOSE</option>
+        <option value="sv">SV</option>
+        <option value="tls">TLS 加密流量</option>
+        <option value="_ws.expert">专家信息</option>
+      </select>
+      <label for="mms-ports">MMS 端口</label
+      ><input
+        id="mms-ports"
+        value="102"
+        title="非标准 MMS 端口，以逗号分隔。更改后重新打开文件。"
+        aria-label="MMS 解码端口"
+      />
+    </div>
+    <div id="analysis-workspace">
+      <main>
+        <section class="packet-pane">
+          <div class="pane-title">
+            <b>报文列表</b><span id="file-label">尚未打开文件</span
+            ><span id="count"></span>
+          </div>
+          <div id="packet-scroll" tabindex="0" aria-label="报文列表">
+            <table class="packets">
+              <colgroup>
+                <col />
+                <col />
+                <col />
+                <col />
+                <col />
+                <col />
+                <col />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>编号</th>
+                  <th>相对时间 / s</th>
+                  <th>源</th>
+                  <th>目标</th>
+                  <th>协议</th>
+                  <th>长度</th>
+                  <th>业务摘要</th>
+                </tr>
+              </thead>
+              <tbody id="packet-rows"></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="detail-pane">
+          <div class="protocol-pane">
+            <div class="pane-title">
+              <b>协议解析</b><button data-action="expand">展开</button
+              ><button data-action="collapse">折叠</button>
+            </div>
+            <div id="correlation"></div>
+            <div id="protocol-tree" class="scroll">
+              <p class="empty">选择报文查看逐层解析结果。</p>
+            </div>
+          </div>
+          <div class="bytes-pane">
+            <div class="pane-title">
+              <b>原始字节</b><button data-action="copy-hex">复制</button>
+            </div>
+            <pre id="hex" class="scroll"></pre>
+          </div>
+        </section>
+        <section class="replay-pane">
+          <div class="pane-title">
+            <b>数据回放</b
+            ><span id="replay-mode">纯离线 · 不重发遥控 / 定值写入</span
+            ><button
+              data-action="snapshot"
+              title="重建整个捕获文件中截至选中帧的已观察状态，不受显示过滤器影响"
+            >
+              累计值快照</button
+            ><span id="values-mode">当前帧</span><span class="spacer"></span
+            ><span id="replay-position">0 / 0</span>
+          </div>
+          <div class="playbar">
+            <button data-action="rewind" title="回到起点">|◀</button
+            ><button data-action="play" id="play">▶ 播放</button
+            ><button data-action="next">步进 ▷</button
+            ><select id="speed" aria-label="回放倍率">
+              <option value="0.25">0.25×</option>
+              <option value="0.5">0.5×</option>
+              <option value="1" selected>1×</option>
+              <option value="2">2×</option>
+              <option value="4">4×</option>
+              <option value="10">10×</option>
+              <option value="100">100×</option></select
+            ><input
+              id="timeline"
+              type="range"
+              min="0"
+              max="0"
+              value="0"
+              aria-label="回放位置"
+            /><span id="replay-time">0.000 s</span>
+          </div>
+          <div class="value-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>数据引用 / 访问结果</th>
+                  <th>类型</th>
+                  <th>值</th>
+                  <th>质量</th>
+                  <th>采集时间</th>
+                  <th>IED 时间</th>
+                  <th>来源</th>
+                </tr>
+              </thead>
+              <tbody id="values">
+                <tr>
+                  <td colspan="7" class="empty">
+                    回放展示当前报文已解码的数据；未解析引用和值保持未知。
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+      <aside id="ai-panel" hidden aria-label="AI 报文学习与诊断">
+        <div class="pane-title">
+          <b>AI 报文助手</b><span class="spacer"></span
+          ><button id="ai-close" aria-label="关闭 AI 面板">×</button>
+        </div>
+        <div class="ai-controls">
+          <select id="ai-mode" aria-label="AI 模式">
+            <option value="learn">学习讲解</option>
+            <option value="diagnose">读数诊断</option>
+            <option value="search">自然语言检索</option></select
+          ><button id="ai-config">DeepSeek 设置…</button>
+        </div>
+        <div class="ai-controls">
+          <button id="ai-history">对话历史</button
+          ><button id="ai-explain">解释所选帧</button
+          ><button id="ai-walk">跟踪一次交互</button
+          ><button id="ai-export">导出记录…</button>
+        </div>
+        <details id="ai-course" open>
+          <summary>离线基础课程与练习</summary>
+          <select id="ai-lesson" aria-label="课程"></select>
+          <div id="ai-lesson-text"></div>
+          <div id="ai-quiz"></div>
+          <button id="ai-grade">检查答案</button>
+          <p id="ai-feedback" role="status"></p>
+        </details>
+        <details id="ai-jump-options">
+          <summary>数据跳变检查（本地计算）</summary>
+          <label
+            >完整 DA 引用<input
+              id="ai-jump-reference"
+              placeholder="STUDIOLD0/GGIO1.AnIn1.mag.f" /></label
+          ><button id="ai-jump-selected">使用所选帧数值引用</button>
+          <label
+            >最大允许变化幅度<input
+              id="ai-jump-absolute"
+              type="number"
+              step="any"
+              placeholder="留空：不判定异常"
+          /></label>
+          <label
+            >最大允许变化速率（值/秒）<input
+              id="ai-jump-rate"
+              type="number"
+              step="any"
+              placeholder="留空：不判定异常"
+          /></label>
+          <button id="ai-jump-scan">本地扫描</button
+          ><button id="ai-jump-analyze">交给 AI 解释跳变</button>
+          <div id="ai-jump-result"></div>
+        </details>
+        <div class="ai-controls">
+          <button id="ai-connection-scan">本地连接检查</button
+          ><button id="ai-connection-analyze">AI 断连重连诊断</button>
+        </div>
+        <div id="ai-connection-result"></div>
+        <p id="ai-scope">发送时使用所选帧和按需查询；双击协议字段可提问。</p>
+        <textarea
+          id="ai-question"
+          maxlength="4000"
+          rows="4"
+          placeholder="例如：解释这次读取的对象、FC 和返回值。为什么 TCP ACK 不等于业务成功？"
+        ></textarea>
+        <label class="ai-consent"
+          ><input type="checkbox" id="ai-consent" />允许本次窗口向 DeepSeek
+          发送问题、所选帧及按需查询的解析字段（含地址、对象名和数值）。不发送完整
+          PCAP、原始字节或本地路径。</label
+        >
+        <div class="ai-controls">
+          <button id="ai-send">发送问题</button
+          ><button id="ai-stop" disabled>取消任务</button>
+        </div>
+        <p id="ai-status" role="status">未发送任何数据</p>
+        <div id="ai-result" aria-live="polite"></div>
+      </aside>
+    </div>
+    <footer>
+      <span id="status" role="status">就绪</span><span class="spacer"></span
+      ><span id="capabilities"></span>
+    </footer>
+    <dialog id="capture-dialog">
+      <form id="capture-form">
+        <h2>实时捕获选项</h2>
+        <label>网络接口<select id="interfaces" required></select></label
+        ><label
+          >捕获过滤器（BPF）<input
+            id="capture-filter"
+            value="tcp port 102 or tcp port 3782 or ether proto 0x88b8 or ether proto 0x88ba"
+            spellcheck="false"
+        /></label>
+        <p>
+          本机 127.0.0.1 通信请选择 Npcap Loopback；外部设备请选择实际通信网卡。
+          不同 MMS
+          端口需同时修改捕获过滤器和解码端口。文件持续写入磁盘，停止后加载分析。
+        </p>
+        <label
+          >输出 PCAPNG 文件
+          <div class="path-field">
+            <input id="capture-output" readonly required /><button
+              type="button"
+              data-action="output"
+            >
+              选择…
+            </button>
+          </div></label
+        >
+        <div class="dialog-actions">
+          <button type="button" data-close="capture-dialog">取消</button
+          ><button type="submit">开始捕获</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="sessions-dialog">
+      <h2>TCP / MMS 会话</h2>
+      <div id="sessions-content" class="scroll"></div>
+      <div class="dialog-actions">
+        <button data-close="sessions-dialog">关闭</button>
+      </div>
+    </dialog>
+    <dialog id="goto-dialog">
+      <form id="goto-form">
+        <h2>定位报文</h2>
+        <label
+          >捕获文件中的帧编号<input
+            id="goto-frame"
+            type="number"
+            min="1"
+            required
+        /></label>
+        <div class="dialog-actions">
+          <button type="button" data-close="goto-dialog">取消</button
+          ><button type="submit">定位</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="mapping-dialog">
+      <form id="mapping-form">
+        <h2>主应用数据值回放映射</h2>
+        <p>
+          默认纯离线。明确选择捕获引用与主应用测量点后，播放/步进时更新服务值。不可回放遥控输出；不修改质量未知的字段。启用前需要确认映射。
+        </p>
+        <label
+          >捕获数据引用<input
+            id="mapping-source"
+            list="decoded-references"
+            required
+            spellcheck="false" /><datalist
+            id="decoded-references"
+          ></datalist></label
+        ><label
+          >主应用目标测量点<select id="mapping-target" required></select></label
+        ><button type="button" data-action="mapping-add">添加映射</button>
+        <div id="mapping-list" class="scroll"></div>
+        <div class="dialog-actions">
+          <button type="button" data-close="mapping-dialog">取消</button
+          ><button type="submit">确认并启用…</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="ai-settings-dialog">
+      <form id="ai-settings-form">
+        <h2>DeepSeek API 设置</h2>
+        <p>
+          Key 使用 Windows
+          用户级加密保存在本机。保存不上传报文；连接测试仅发送固定测试问题。
+        </p>
+        <label
+          >API Key（留空保留已保存的 Key）<input
+            id="ai-key"
+            type="password"
+            autocomplete="off"
+            spellcheck="false"
+            maxlength="512"
+        /></label>
+        <label
+          >模型<input
+            id="ai-model"
+            value="deepseek-flash"
+            maxlength="80"
+            spellcheck="false"
+        /></label>
+        <p id="ai-settings-status" role="status"></p>
+        <p id="ai-settings-path"></p>
+        <div class="dialog-actions">
+          <button type="button" id="ai-clear-key">清除 Key</button
+          ><button type="button" id="ai-test">测试已保存 Key</button
+          ><button type="button" id="ai-settings-close">关闭</button
+          ><button type="submit">保存</button>
+        </div>
+      </form>
+    </dialog>
+    <script src="renderer.js" type="module"></script>
+  </body>
+</html>

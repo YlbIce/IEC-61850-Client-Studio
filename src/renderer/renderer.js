@@ -27,6 +27,8 @@ const state = {
   selectedReportReference: '',
   fileEntries: [],
   fileContent: null,
+  fileDirectory: "/",
+  selectedFile: "",
   logEntries: [],
   settingState: null,
   busy: null,
@@ -384,9 +386,13 @@ function renderTabs() {
   `).join('');
 }
 
+const treeContextNodes = new Map();
+let contextSelection = null;
 function renderModelTree() {
   const filter = dom.treeFilter.value.trim().toLowerCase();
   const rows = flattenTree(state.workspace?.model?.roots || []);
+  treeContextNodes.clear();
+  rows.forEach(({node}) => treeContextNodes.set(`${node.reference}|${node.fc || ""}`, node));
   const visible = rows.filter(({ node }) => {
     if (!filter) return true;
     return `${node.name} ${node.reference} ${node.kind} ${node.fc}`.toLowerCase().includes(filter);
@@ -396,7 +402,7 @@ function renderModelTree() {
     return;
   }
   dom.modelTree.innerHTML = visible.map(({ node, level }) => `
-    <div class="tree-node ${state.selectedNode?.reference === node.reference ? 'selected' : ''}" data-ref="${escapeHtml(node.reference)}" data-kind="${escapeHtml(node.kind)}" data-linked-ref="${escapeHtml(node.linkedReference || '')}" title="${escapeHtml(node.description || node.reference)}" style="--level:${level}">
+    <div class="tree-node ${state.selectedNode?.reference === node.reference ? 'selected' : ''}" data-ref="${escapeHtml(node.reference)}" data-kind="${escapeHtml(node.kind)}" data-fc="${escapeHtml(node.fc || '')}" data-linked-ref="${escapeHtml(node.linkedReference || '')}" title="${escapeHtml(node.description || node.reference)}" style="--level:${level}">
       <span><span class="tree-indent"></span><span class="tree-kind">${escapeHtml(node.kind)}</span></span>
       <span>${escapeHtml(node.name)}</span>
       <span>${escapeHtml(node.fc || '')}</span>
@@ -517,7 +523,7 @@ function showContextMenu(x, y, node) {
   state.contextNode = node;
   dom.contextMenu.innerHTML = items.map((item) => {
     if (item.separator) return '<div class="context-separator"></div>';
-    return `<button data-action="${escapeHtml(item.action)}" data-ref="${escapeHtml(node.reference || '')}" data-linked-ref="${escapeHtml(node.linkedReference || '')}" data-kind="${escapeHtml(node.kind || '')}">${escapeHtml(item.label)}</button>`;
+    return `<button data-action="${escapeHtml(item.action)}" data-ref="${escapeHtml(node.reference || '')}" data-linked-ref="${escapeHtml(node.linkedReference || '')}" data-kind="${escapeHtml(node.kind || '')}" data-fc="${escapeHtml(node.fc || '')}">${escapeHtml(item.label)}</button>`;
   }).join('');
   dom.contextMenu.hidden = false;
   const rect = dom.contextMenu.getBoundingClientRect();
@@ -545,22 +551,22 @@ function renderStatus() {
   dom.trafficStats.textContent = `REQ ${traffic.requests || 0} / RSP ${traffic.responses || 0} / RPT ${traffic.reports || 0}`;
 }
 
-function tableRows(items, columns) {
+function tableRows(items, columns, contextKind = "") {
   if (!items || items.length === 0) {
     return `<tr><td colspan="${columns.length}">无数据</td></tr>`;
   }
   return items.map((item) => `
-    <tr>
+    <tr ${contextKind ? `data-context-kind="${contextKind}" data-ref="${escapeHtml(item.reference)}" data-fc="${escapeHtml(item.fc || '')}" data-type="${escapeHtml(item.type || '')}"` : ''}>
       ${columns.map((col) => `<td>${escapeHtml(col.value(item))}</td>`).join('')}
     </tr>
   `).join('');
 }
 
-function renderTable(items, columns) {
+function renderTable(items, columns, contextKind = "") {
   return `
     <table class="table">
       <thead><tr>${columns.map((col) => `<th>${escapeHtml(col.title)}</th>`).join('')}</tr></thead>
-      <tbody>${tableRows(items, columns)}</tbody>
+      <tbody>${tableRows(items, columns, contextKind)}</tbody>
     </table>
   `;
 }
@@ -568,7 +574,7 @@ function renderTable(items, columns) {
 function renderDataSetResult() {
   const data = state.datasetSnapshot;
   if (!data) return '<div class="empty-note">从左侧数据集列表选择一个数据集后，会在这里打开点位巡检表。</div>';
-  const points = data.points || [];
+  const points = [...new Map((data.points || []).map(p => [p.objectReference, p])).values()];
   if (points.length === 0) return '<div class="empty-note">该数据集没有返回点位。请确认设备支持 GetDataSetValue，或检查数据集成员配置。</div>';
 
   return `
@@ -584,7 +590,7 @@ function renderDataSetResult() {
         <tr>
           <th></th>
           <th>数据对象引用</th>
-          <th>dU 描述</th>
+          <th>数据名称（dU）</th>
           <th>值</th>
           <th>质量</th>
           <th>时间</th>
@@ -604,7 +610,7 @@ function renderDataSetPointRow(dataSetReference, point) {
   const expanded = isPointExpanded(dataSetReference, objectReference);
   const tested = isPointTested(dataSetReference, objectReference);
   return `
-    <tr class="point-row ${tested ? 'tested' : ''}">
+    <tr class="point-row ${tested ? 'tested' : ''}" data-context-kind="DO" data-ref="${escapeHtml(objectReference)}" data-fc="${escapeHtml(point.fc || value.fc || '')}">
       <td><button class="icon-button" data-action="dataset:toggle-point" data-object-ref="${escapeHtml(objectReference)}" title="展开属性">${expanded ? '-' : '+'}</button></td>
       <td class="mono-cell">${escapeHtml(objectReference || point.memberReference || '-')}</td>
       <td>${escapeHtml(point.du || '-')}</td>
@@ -631,7 +637,7 @@ function renderPointAttributes(dataSetReference, point) {
           { title: '值', value: (item) => item.value || item.error || '' },
           { title: '质量', value: (item) => item.quality || '' },
           { title: '时间', value: (item) => item.timestamp || '' }
-        ])}
+        ], "DA")}
       </td>
     </tr>
   `;
@@ -679,13 +685,9 @@ function renderReportParameters(block) {
 
 function renderFileResult() {
   return `
-    ${renderTable(state.fileEntries || [], [
-      { title: '名称', value: (item) => item.name },
-      { title: '路径', value: (item) => item.path },
-      { title: '类型', value: (item) => item.directory ? '目录' : '文件' },
-      { title: '大小', value: (item) => item.size },
-      { title: '修改时间', value: (item) => item.modified }
-    ])}
+    <table class="table file-table"><thead><tr><th>名称 / 服务端路径</th><th>类型</th><th>大小</th><th>修改时间</th><th>操作</th></tr></thead><tbody>
+    ${(state.fileEntries || []).map(item => `<tr class="${state.selectedFile === item.path ? 'selected' : ''}"><td title="${escapeHtml(item.path)}"><button class="file-path" data-action="file:select" data-ref="${escapeHtml(item.path)}">${escapeHtml(item.name)}</button></td><td>${item.directory ? '目录' : '文件'}</td><td>${escapeHtml(item.size)}</td><td>${escapeHtml(item.modified)}</td><td><button data-action="${item.directory ? 'file:directory' : 'file:open'}" data-ref="${escapeHtml(item.path)}">${item.directory ? '打开目录' : '读取'}</button></td></tr>`).join('')}
+    </tbody></table>
     ${state.fileContent ? `<pre class="text-preview">${escapeHtml(state.fileContent.textPreview || '')}</pre>` : ''}
   `;
 }
@@ -712,6 +714,7 @@ function renderSettingResult() {
 }
 
 function renderPages() {
+  document.body.classList.toggle("dataset-focus", state.activeModule === "datasets");
   const active = state.activeModule;
   dom.pageHost.innerHTML = modules.map((mod) => `
     <section class="page ${active === mod.id ? 'active' : ''}" data-page="${mod.id}">
@@ -814,7 +817,7 @@ function renderDataSetPage() {
   const sets = dataSetNodes();
   const activeReference = state.datasetReference || sets[0]?.reference || '';
   return `
-    <div class="page-layout two">
+    <div class="page-layout dataset-layout">
       <div class="section">
         <div class="section-header"><span>数据集列表</span><button data-action="model:refresh">刷新模型</button></div>
         <div class="section-body">
@@ -833,10 +836,6 @@ function renderDataSetPage() {
             <button data-action="dataset:read" ${activeReference ? '' : 'disabled'}>打开/刷新选中数据集</button>
             <button data-action="dataset:mark-all-tested" ${state.datasetSnapshot?.reference ? '' : 'disabled'}>全部标为已测</button>
             <button data-action="dataset:clear-tested" ${state.datasetSnapshot?.reference ? '' : 'disabled'}>清除本数据集标记</button>
-          </div>
-          <div class="kv result-summary">
-            <div>当前数据集</div><div>${escapeHtml(activeReference || '-')}</div>
-            <div>使用方式</div><div>从模型读取到的数据集列表中选择，不需要手工填写引用。dU 来源于数据对象的 dU 属性。</div>
           </div>
           <input id="datasetRef" type="hidden" value="${escapeHtml(activeReference)}" />
         </div>
@@ -892,7 +891,7 @@ function renderReportsPage() {
         <div class="section-body">
           ${renderReportParameters(block)}
           <div class="subsection-title">关联数据集点位</div>
-          ${dataSetReady ? renderDataSetResult() : '<div class="empty-note">选择 RCB 后会自动读取其 DatSet 成员和值；启用后，服务端报告上送会自动刷新这里的值。</div>'}
+          ${dataSetReady ? '<div id="reportDatasetResult">' + renderDataSetResult() + '</div>' : '<div class="empty-note">选择 RCB 后会自动读取其 DatSet 成员和值；启用后，服务端报告上送会自动刷新这里的值。</div>'}
           <div class="subsection-title">最近报告</div>
           ${renderTable(reports, [
             { title: '时间', value: (item) => item.time },
@@ -932,9 +931,9 @@ function renderControlPage() {
         <div class="section-header"><span>安全边界</span></div>
         <div class="section-body">
           <div class="kv">
-            <div>二次确认</div><div>真实产品应增加操作票、权限、设备闭锁状态校验。</div>
+            <div>二次确认</div><div>操作前请核对目标设备、控制对象及现场许可。</div>
             <div>SBO 流程</div><div>Select、Operate、Cancel 需要按 ctlModel 和设备返回状态细化。</div>
-            <div>当前状态</div><div>后端接口已预留，Mock 模式记录操作事件。</div>
+            <div>当前状态</div><div>模拟站操作仅验证流程；真实设备以通信返回结果为准。</div>
           </div>
         </div>
       </div>
@@ -949,7 +948,7 @@ function renderFilesPage() {
         <div class="section-header"><span>文件服务</span><button data-action="file:list">刷新</button></div>
         <div class="section-body">
           <div class="grid-form">
-            <label>目录</label><input id="fileDir" value="/" />
+            <label>目录</label><input id="fileDir" value="${escapeHtml(state.fileDirectory)}" /><label>文件路径</label><input id="filePath" value="${escapeHtml(state.selectedFile)}" placeholder="点击列表选择文件，或输入服务端文件路径" />
           </div>
           <div class="command-row top-gap">
             <button data-action="file:list">列目录</button>
@@ -1050,7 +1049,17 @@ function selectedLogicalNode() {
 
 async function connect(mock = false) {
   const host = mock ? 'MockBay' : dom.hostInput.value.trim();
-  const port = Number.parseInt(dom.portInput.value, 10) || 102;
+  const port = Number(dom.portInput.value);
+  if (!mock && (!host || !Number.isInteger(port) || port < 1 || port > 65535)) {
+    logEvent('ERROR', '连接', '请输入主机地址和 1–65535 的整数端口');
+    return;
+  }
+  if (!mock) {
+    dom.hostInput.value = host;
+    try { localStorage.setItem('iec61850.connection', JSON.stringify({host, port})); }
+    catch { logEvent('WARN', '连接', '连接地址无法保存到本机'); }
+    logEvent('INFO', '连接', `请求连接 ${host}:${port}`);
+  }
   const response = await withBusy(
     mock ? '连接模拟站' : '连接 IED',
     mock ? '正在加载模拟站模型...' : `正在连接 ${host}:${port}，并读取在线模型...`,
@@ -1375,6 +1384,7 @@ async function copyText(text) {
 
 async function listFiles() {
   const directory = document.getElementById('fileDir')?.value || '/';
+  state.fileDirectory = directory;
   const data = await withBusy('读取文件目录', `正在读取目录 ${directory}...`, () => api.call('GetFiles', { directory }));
   state.fileEntries = data.entries || [];
   state.fileContent = null;
@@ -1420,7 +1430,7 @@ function applyWorkspace(workspace, force = false) {
   const previousConnection = state.workspace?.connection || {};
   const previousSignature = state.modelSignature;
   state.workspace = workspace;
-  const liveChanged = applyLiveValuesToSnapshot(workspace?.liveValues || []);
+  const liveChanged = false; // Selected snapshots are refreshed by device reads; retained reports may be older.
   const nextSignature = modelSignature(workspace?.model);
   const connectionChanged = previousConnection.connected !== workspace?.connection?.connected ||
     previousConnection.mock !== workspace?.connection?.mock ||
@@ -1443,8 +1453,8 @@ function togglePane(pane) {
 
 function resetLayout() {
   dom.workspace.classList.remove('hidden-pane-left', 'hidden-pane-right', 'hidden-pane-bottom');
-  document.documentElement.style.setProperty('--left-pane', '300px');
-  document.documentElement.style.setProperty('--right-pane', '320px');
+  document.documentElement.style.setProperty('--left-pane', '255px');
+  document.documentElement.style.setProperty('--right-pane', '270px');
   document.documentElement.style.setProperty('--bottom-pane', '190px');
 }
 
@@ -1454,6 +1464,9 @@ async function detachCurrent() {
 }
 
 async function handleAction(action) {
+  try {return await performAction(action);} catch(error){logEvent("ERROR","操作失败",error.message);}
+}
+async function performAction(action) {
   const type = action?.type || action;
   switch (type) {
     case 'connect:open':
@@ -1506,7 +1519,7 @@ async function handleAction(action) {
       renderAll();
       break;
     case 'watch:add':
-      logEvent('INFO', '监视', state.selectedNode ? `加入监视 ${state.selectedNode.reference}` : '未选择对象');
+      await readObjectReference(action.linkedReference || action.reference || preferredReference(state.selectedNode), action.fc || state.selectedNode?.fc || '');
       break;
     case 'dataset:read':
       await readDataset();
@@ -1590,15 +1603,36 @@ async function handleAction(action) {
     case 'file:list':
       await listFiles();
       break;
-    case 'file:read':
-      state.fileContent = await withBusy('读取文件', `正在读取 ${document.getElementById('fileDir')?.value || '/'}...`, () => api.call('ReadFile', { path: document.getElementById('fileDir')?.value || '/' }));
-      logEvent('INFO', '文件', `读取 ${state.fileContent.path || ''}`);
+    case 'file:select':
+      state.selectedFile = action.reference || '';
+      setInputValue('filePath', state.selectedFile);
+      break;
+    case 'file:directory':
+      state.fileDirectory = action.reference || '/';
+      setInputValue('fileDir', state.fileDirectory);
+      await listFiles();
+      break;
+    case 'file:open':
+      state.selectedFile = action.reference || '';
+      setInputValue('filePath', state.selectedFile);
+      // Fall through to the same explicit file-read path as the toolbar.
+    case 'file:read': {
+      const path = document.getElementById('filePath')?.value || '';
+      if (!path || /[\\/]$/.test(path)) { logEvent('WARN', '文件', '请先选择一个文件，目录不能作为文件读取'); break; }
+      state.selectedFile = path;
+      state.fileDirectory = document.getElementById('fileDir')?.value || '/';
+      state.fileContent = await withBusy('读取文件', `正在读取 ${path}...`, () => api.call('ReadFile', { path }));
+      logEvent(state.fileContent.textPreview?.startsWith('读取失败') ? 'ERROR' : 'INFO', '文件', `读取 ${path}`);
       state.pagesDirty = true;
       renderAll();
       break;
-    case 'file:delete':
-      await commandReply('DeleteFile', { path: document.getElementById('fileDir')?.value || '/' }, '文件');
+    }
+    case 'file:delete': {
+      const path = document.getElementById('filePath')?.value || '';
+      if (!path || /[\\/]$/.test(path)) { logEvent('WARN', '文件', '请先选择一个文件'); break; }
+      if (window.confirm(`删除服务端文件 ${path}？`)) await commandReply('DeleteFile', { path }, '文件');
       break;
+    }
     case 'log:query':
       await queryLogs();
       break;
@@ -1623,6 +1657,9 @@ async function handleAction(action) {
         svId: document.getElementById('subId')?.value || '',
         interfaceName: document.getElementById('subIf')?.value || ''
       }, 'SV');
+      break;
+    case 'capture:open':
+      await api.capture();
       break;
     case 'traffic:refresh':
       await refreshWorkspace();
@@ -1682,17 +1719,19 @@ function bindEvents() {
   });
 
   document.addEventListener('contextmenu', (event) => {
-    const nodeEl = event.target.closest('.tree-node');
-    if (!nodeEl) {
-      hideContextMenu();
-      return;
-    }
+    const row = event.target.closest('[data-context-kind], .tree-node');
+    if (!row) { hideContextMenu(); return; }
     event.preventDefault();
-    const node = findNode(nodeEl.dataset.ref);
+    const node = row.matches('.tree-node')
+      ? treeContextNodes.get(`${row.dataset.ref}|${row.dataset.fc || ''}`)
+      : { reference: row.dataset.ref, name: row.dataset.ref, kind: row.dataset.contextKind,
+          fc: row.dataset.fc || '', type: row.dataset.type || '', readable: true };
     if (!node) return;
     state.selectedNode = node;
-    renderModelTree();
-    renderProperties();
+    contextSelection?.classList.remove('context-selected');
+    contextSelection = row;
+    row.classList.add('context-selected');
+    // Opening a menu must not rebuild the model tree or render hidden pages.
     showContextMenu(event.clientX, event.clientY, node);
   });
 
@@ -1700,12 +1739,13 @@ function bindEvents() {
 
   dom.treeFilter.addEventListener('input', renderModelTree);
 
-  document.getElementById('dialogConnect').addEventListener('click', async (event) => {
+  document.getElementById('dialogConnectCancel').addEventListener('click', () => dom.connectDialog.close());
+  document.getElementById('connectForm').addEventListener('submit', async (event) => {
     event.preventDefault();
     dom.hostInput.value = dom.dialogHost.value;
     dom.portInput.value = dom.dialogPort.value;
     dom.connectDialog.close();
-    await connect(dom.dialogMock.checked);
+    try{await connect(dom.dialogMock.checked);}catch(error){logEvent('ERROR','连接',error.message);}
   });
 
   document.getElementById('dialogWrite').addEventListener('click', async (event) => {
@@ -1721,6 +1761,11 @@ function bindEvents() {
   });
 
   api.onMenuAction((action) => handleAction(action));
+  api.onBackendStatus(({ready,message})=>{
+    if(!ready && state.workspace?.connection) state.workspace.connection.connected=false;
+    logEvent(ready?'INFO':'ERROR','后端',message);
+    if(ready)refreshWorkspace().catch(error=>logEvent('ERROR','后端',error.message));else renderStatus();
+  });
   api.onWorkspace((workspace) => {
     applyWorkspace(workspace);
     renderLight();
@@ -1777,6 +1822,7 @@ function renderAll() {
 }
 
 function renderLight() {
+  if (!dom.contextMenu.hidden) return;
   renderStatus();
   renderEvents();
   if (state.pagesDirty) {
@@ -1788,8 +1834,15 @@ function renderLight() {
 }
 
 async function init() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('iec61850.connection') || 'null');
+    if (saved && typeof saved.host === 'string' && saved.host.trim() && Number.isInteger(saved.port) && saved.port > 0 && saved.port <= 65535) {
+      dom.hostInput.value = saved.host;
+      dom.portInput.value = String(saved.port);
+    }
+  } catch { /* Ignore malformed saved connection settings. */ }
   loadPointTested();
-  state.openTabs = detached ? [moduleById(state.activeModule)] : modules.slice(0, 3);
+  state.openTabs = detached ? [moduleById(state.activeModule)] : modules.slice();
   bindEvents();
   bindSplitters();
   renderAll();
@@ -1799,3 +1852,54 @@ async function init() {
 init().catch((error) => {
   logEvent('ERROR', '启动', error.message || String(error));
 });
+
+// One request chain per window: slow devices cannot accumulate polling requests.
+let liveReadPending = false;
+setInterval(async () => {
+  if (liveReadPending || !dom.contextMenu.hidden || state.busy || !state.workspace?.connection?.connected || document.hidden) return;
+  const connection = JSON.stringify(state.workspace.connection);
+  const active = state.activeModule;
+  const reference = state.datasetReference;
+  liveReadPending = true;
+  try {
+    if (['datasets', 'reports'].includes(active) && reference) {
+      const snapshot = await api.call('ReadDataSet', { reference });
+      const inspections = {};
+      for (const point of snapshot.points || []) {
+        if (isPointExpanded(reference, point.objectReference)) {
+          inspections[dataSetTestKey(reference, point.objectReference)] = await api.call('InspectDataObject', {
+            objectReference: point.objectReference, fc: point.fc
+          });
+        }
+      }
+      if (reference !== state.datasetReference || connection !== JSON.stringify(state.workspace.connection)) return;
+      state.datasetSnapshot = snapshot;
+      Object.assign(state.pointInspections, inspections);
+      const target = document.getElementById(active === 'reports' ? 'reportDatasetResult' : 'datasetResult');
+      if (target && dom.contextMenu.hidden) {
+        const scroll = target.parentElement.scrollTop;
+        target.innerHTML = renderDataSetResult();
+        target.parentElement.scrollTop = scroll;
+      }
+    } else if (active === 'data' && state.readValues.length) {
+      const old = state.readValues;
+      const values = [];
+      for (const value of old) values.push(await api.call('ReadObject', { reference: value.reference, fc: value.fc }));
+      if (old === state.readValues && connection === JSON.stringify(state.workspace.connection)) {
+        state.readValues = values;
+        const table = document.querySelector('[data-page="data"] .table tbody');
+        if (table && !document.querySelector('dialog[open]')) {
+          const cells = [...table.querySelectorAll('tr')];
+          values.forEach((v, i) => {
+            const row = cells[i];
+            if (!row) return;
+            const list = [v.timestamp || '', v.reference, v.fc, v.type, v.value || v.error || ''];
+            [...row.children].forEach((cell, j) => { if (list[j] !== undefined) cell.textContent = list[j]; });
+          });
+        }
+      }
+    }
+  } catch (error) {
+    dom.statusText.textContent = `自动刷新失败：${error.message}`;
+  } finally { liveReadPending = false; }
+}, 1000);

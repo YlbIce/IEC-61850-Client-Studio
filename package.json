@@ -1,6 +1,6 @@
 {
   "name": "iec61850-client-studio",
-  "version": "0.1.0",
+  "version": "0.2.6",
   "description": "IEC 61850 desktop client based on Electron, C++ gRPC backend, Protobuf, and libiec61850.",
   "main": "src/main/main.js",
   "private": true,
@@ -8,9 +8,14 @@
     "build:backend": "node scripts/build-backend.js",
     "start": "node scripts/run-electron.js",
     "dev": "node scripts/run-electron.js --dev",
-    "check": "node --check src/main/main.js && node --check src/preload/preload.js && node --check src/renderer/renderer.js",
+    "check": "node scripts/check.js",
     "test": "node scripts/run-tests.js",
-    "dist": "npm run build:backend && npm run check && electron-builder --win nsis portable"
+    "dist": "npm run build:backend && npm run build:capture && npm run check && electron-builder --win nsis zip",
+    "test:ai": "node --test tests/*.test.js",
+    "test:ai-ui": "node scripts/test-ai-ui.js",
+    "build:capture": "node scripts/build-capture.js",
+    "dist:portable": "npm run check && electron-builder --win zip",
+    "test:client-ui": "node scripts/test-client-ui.js"
   },
   "keywords": [
     "iec61850",
@@ -20,10 +25,11 @@
     "grpc"
   ],
   "author": "",
-  "license": "MIT",
+  "license": "GPL-3.0-or-later",
   "dependencies": {
     "@grpc/grpc-js": "^1.14.4",
-    "@grpc/proto-loader": "^0.8.1"
+    "@grpc/proto-loader": "^0.8.1",
+    "markdown-it": "^15.0.1"
   },
   "devDependencies": {
     "electron": "39.8.10",
@@ -39,14 +45,28 @@
       "package.json",
       "src/**/*",
       "proto/**/*",
-      "README.md"
+      "README.md",
+      "docs/**/*",
+      "LICENSE",
+      "backend/capture/README.md",
+      "build/icon.ico"
     ],
     "extraResources": [
       {
         "from": "backend/bin",
         "to": "backend/bin",
         "filter": [
-          "**/*"
+          "iec61850-client-backend.exe",
+          "*.dll"
+        ]
+      },
+      {
+        "from": "backend/capture/bin",
+        "to": "capture",
+        "filter": [
+          "capture-helper.exe",
+          "iec61850-capture.dll",
+          "wireshark/**/*"
         ]
       }
     ],
@@ -54,8 +74,10 @@
     "win": {
       "target": [
         "nsis",
-        "portable"
-      ]
+        "zip"
+      ],
+      "artifactName": "IEC61850-Client-Studio-${version}-Portable.${ext}",
+      "icon": "build/icon.ico"
     },
     "nsis": {
       "artifactName": "${productName}-Setup-${version}-${arch}.${ext}",

@@ -1,0 +1,182 @@
+:root {
+  font:
+    15px/1.75 "Segoe UI",
+    "Microsoft YaHei",
+    sans-serif;
+  color: #25344a;
+  background: #f4f6fa;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: #fff;
+  border-bottom: 1px solid #d4dce6;
+}
+header strong {
+  margin-right: auto;
+  color: #204c83;
+  font-size: 18px;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid #b9c9dc;
+  border-radius: 4px;
+  padding: 4px 12px;
+  background: #fff;
+  color: #214e85;
+}
+button:hover {
+  background: #eaf2fe;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.layout {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+}
+nav {
+  width: 176px;
+  flex-shrink: 0;
+  padding: 24px 12px;
+  border-right: 1px solid #d4dce6;
+}
+nav a {
+  display: block;
+  padding: 10px;
+  color: #36577f;
+  text-decoration: none;
+}
+nav a:hover {
+  background: #e4edfa;
+}
+main {
+  overflow: auto;
+  flex: 1;
+  padding: 24px 36px;
+  scroll-behavior: smooth;
+  min-width: 0;
+}
+section,
+.question {
+  max-width: 1200px;
+  margin: 0 auto 22px;
+  background: white;
+  padding: 22px 28px;
+  border: 1px solid #dce3ec;
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+}
+h1 {
+  font-size: 21px;
+  line-height: 1.6;
+  margin: 8px 0;
+}
+h2 {
+  font-size: 19px;
+  color: #214e85;
+  margin: 0 0 16px;
+}
+h2 small {
+  font-size: 12px;
+  font-weight: normal;
+  color: #68778a;
+}
+h3 {
+  font-size: 17px;
+}
+p {
+  margin: 10px 0;
+}
+#meta,
+#source,
+.question small {
+  font-size: 12px;
+  color: #69788d;
+}
+article h1 {
+  font-size: 22px;
+}
+article h2 {
+  margin-top: 24px;
+}
+article table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+  max-width: 100%;
+}
+article th,
+article td {
+  border: 1px solid #d4dce6;
+  padding: 8px 14px;
+  min-width: 100px;
+}
+article th {
+  background: #edf3fa;
+}
+pre {
+  overflow: auto;
+  background: #f1f4f8;
+  padding: 16px;
+  border-radius: 4px;
+  line-height: 1.6;
+}
+code {
+  font-family: Consolas, monospace;
+  background: #f1f4f8;
+}
+blockquote {
+  border-left: 3px solid #799cc7;
+  margin: 16px 0;
+  padding: 2px 18px;
+  background: #f7f9fc;
+}
+.fact {
+  padding: 12px 0;
+  border-bottom: 1px solid #e1e7ee;
+}
+.fact button {
+  margin: 6px 6px 0 0;
+}
+li {
+  margin: 8px 0;
+}
+#stale,
+#incomplete {
+  background: #fff1d5;
+  padding: 8px 20px;
+  color: #76520c;
+}
+footer {
+  font-size: 12px;
+  padding: 5px 20px;
+  background: #fff;
+  border-top: 1px solid #d4dce6;
+}
+@media (max-width: 950px) {
+  nav {
+    width: 140px;
+  }
+  main {
+    padding: 18px;
+  }
+  section,
+  .question {
+    padding: 18px;
+  }
+}

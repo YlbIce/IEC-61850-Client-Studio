@@ -357,6 +357,24 @@ void StudioModel::addDataSetPoint(iec61850studio::DataSetSnapshot& snapshot, con
   point->set_quality(value.quality());
   point->set_timestamp(value.timestamp());
   point->set_du(readDescription(point->object_reference(), member.fc()));
+  if (connected_ && !mock_ && connection_ && value.type() != "STRUCTURE") {
+    // q/t are device attributes, not the time at which this read was made.
+    point->clear_quality(); point->clear_timestamp();
+    point->mutable_value()->clear_quality(); point->mutable_value()->clear_timestamp();
+    for (const auto& suffix : {std::string("q"), std::string("t")}) {
+      IedClientError error = IED_ERROR_OK;
+      MmsValue* attribute = IedConnection_readObject(connection_, &error,
+        (point->object_reference() + "." + suffix).c_str(), fcFromText(member.fc()));
+      if (error == IED_ERROR_OK && attribute) {
+        if (suffix == "q" && MmsValue_getType(attribute) == MMS_BIT_STRING)
+          point->set_quality(std::to_string(MmsValue_getBitStringAsInteger(attribute)));
+        if (suffix == "t" && MmsValue_getType(attribute) == MMS_UTC_TIME)
+          point->set_timestamp(timeTextFromMs(MmsValue_getUtcTimeInMs(attribute)));
+      }
+      if (attribute) MmsValue_delete(attribute);
+    }
+  }
+
 }
 
 std::string StudioModel::readDescription(const std::string& objectReference, const std::string& fc) {
@@ -421,8 +439,12 @@ void StudioModel::addPointAttributes(iec61850studio::DataObjectInspection& inspe
     if (readError == IED_ERROR_OK && value) {
       dataValue->set_type(mmsTypeName(value));
       dataValue->set_value(mmsValueToText(value));
-      dataValue->set_quality("from-device");
+      dataValue->set_quality("");
+      dataValue->clear_timestamp();
+      const bool structure = MmsValue_getType(value) == MMS_STRUCTURE;
       MmsValue_delete(value);
+      if (structure && std::count(reference.begin(), reference.end(), '.') < 20)
+        addPointAttributes(inspection, reference, attrFc.empty() ? fc : attrFc);
     } else {
       dataValue->set_error(errorText(readError));
     }
@@ -485,11 +507,26 @@ iec61850studio::DataSetSnapshot StudioModel::readDataSet(const std::string& refe
       dataValue->set_source("libiec61850");
       if (i < snapshot.members_size()) {
         addDataSetPoint(snapshot, snapshot.members(i), *dataValue);
+        auto* point = snapshot.mutable_points(snapshot.points_size() - 1);
+        if (MmsValue_getType(item) == MMS_STRUCTURE) {
+          point->clear_quality(); point->clear_timestamp();
+          point->mutable_value()->clear_quality(); point->mutable_value()->clear_timestamp();
+          for (int j = 1; j < MmsValue_getArraySize(item); ++j) {
+            auto* attribute = MmsValue_getElement(item, j);
+            if (MmsValue_getType(attribute) == MMS_BIT_STRING && MmsValue_getBitStringSize(attribute) == 13)
+              point->set_quality(std::to_string(MmsValue_getBitStringAsInteger(attribute)));
+            if (MmsValue_getType(attribute) == MMS_UTC_TIME)
+              point->set_timestamp(timeTextFromMs(MmsValue_getUtcTimeInMs(attribute)));
+          }
+        }
+        MmsValue* primary = item;
+        while (primary && MmsValue_getType(primary) == MMS_STRUCTURE && MmsValue_getArraySize(primary) > 0)
+          primary = MmsValue_getElement(primary, 0);
+        snapshot.mutable_points(snapshot.points_size() - 1)->mutable_value()->set_value(mmsValueToText(primary));
       }
     }
     ClientDataSet_destroy(dataSet);
   }
-  applyLiveValuesToSnapshotLocked(snapshot);
   return snapshot;
 }
 
@@ -826,8 +863,9 @@ iec61850studio::FileList StudioModel::files(const std::string& directory) {
       const uint64_t modified = FileDirectoryEntry_getLastModified(entry);
       auto* out = list.add_entries();
       out->set_name(name ? name : "");
-      out->set_path((directory.empty() || directory == "/") ? std::string("/") + (name ? name : "") : directory + "/" + (name ? name : ""));
-      out->set_directory(size == 0 && name && std::string(name).find('.') == std::string::npos);
+      // MMS FileDirectory names are server file specifications; preserve them for FileOpen.
+      out->set_path(name ? name : "");
+      out->set_directory(name && *name && (std::string(name).back() == '/' || std::string(name).back() == '\\')); 
       out->set_size(size);
       out->set_modified(timeTextFromMs(modified));
     }
@@ -851,11 +889,15 @@ iec61850studio::FileContent StudioModel::readFile(const std::string& path) {
     return content;
   }
 
+  if (path.empty() || path == "/" || path.back() == '/' || path.back() == '\\') {
+    content.set_text_preview("请选择文件，不能读取目录。");
+    return content;
+  }
   FileBuffer buffer;
   IedClientError error = IED_ERROR_OK;
   IedConnection_getFile(connection_, &error, path.c_str(), collectFileBytes, &buffer);
   if (error != IED_ERROR_OK) {
-    content.set_text_preview("读取失败：" + errorText(error));
+    content.set_text_preview("读取失败 [" + path + "]：" + (error == IED_ERROR_OBJECT_DOES_NOT_EXIST ? std::string("文件不存在或服务端无法打开该路径 (IED_ERROR_22)") : errorText(error)));
     return content;
   }
   content.set_data(buffer.data);
