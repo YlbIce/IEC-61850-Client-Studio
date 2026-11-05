@@ -38,6 +38,16 @@
 - 内置模拟 IED，无需真实设备即可调试 UI 与完整通信链路
 - 适用于开发阶段的功能验证与演示
 
+### 报文分析 / AI（可选模块）
+- 抓包解析窗口：支持 PCAP / PCAPNG 文件导入、MMS/TCP 报文解析与离线回放
+- AI 报文诊断：基于 DeepSeek 的报文学习与诊断分析，支持答案窗口与历史记录
+- 抓包后端：独立 C++ 抓包服务（报文存储、辅助进程），详见 [backend/capture/README.md](backend/capture/README.md)
+- 入口、密钥保存、功能边界与验证方式见 [docs/CLIENT-UI-MIGRATION.md](docs/CLIENT-UI-MIGRATION.md)、[docs/AI-USAGE.md](docs/AI-USAGE.md)
+
+### 后端健康监控与主题
+- 后端进程健康检查与自动诊断（见 [docs/BACKEND-TROUBLESHOOTING.md](docs/BACKEND-TROUBLESHOOTING.md)）
+- 亮色 / 暗色 / 跟随系统主题，主界面与独立窗口共享主题（`src/shared/`）
+
 ### 桌面工作区
 - 多标签页系统（数据模型 / 数据对象 / 数据集 / 报告 / 控制 / 文件 / 定值组 / 通信统计）
 - 可拖拽分割面板（左侧导航、右侧属性、底部事件日志）
@@ -84,20 +94,24 @@
 ```
 Iec61850ClientStudio/
 ├── src/
-│   ├── main/main.js              # Electron 主进程
+│   ├── main/                     # Electron 主进程
+│   │   ├── main.js               #   窗口管理、IPC 桥接
+│   │   ├── backend-health.js     #   后端健康检查
+│   │   └── theme.js              #   主题管理
 │   ├── preload/preload.js        # 安全桥接层 (contextBridge)
-│   └── renderer/
-│       ├── index.html            # 主页面
-│       ├── renderer.js           # 渲染进程核心逻辑
-│       └── styles.css            # 样式表
+│   ├── renderer/                 # 桌面工作区 UI（主页面、样式）
+│   ├── capture/                  # 报文分析窗口（抓包解析 + AI 面板）
+│   └── shared/                   # 主/渲染进程共享主题资源
 ├── proto/
-│   └── iec61850studio.proto      # gRPC/Protobuf 接口定义 (24 个 RPC)
+│   └── iec61850studio.proto      # gRPC/Protobuf 接口定义
 ├── backend/
-│   ├── src/main.cpp              # C++ gRPC 服务端实现
+│   ├── src/                      # C++ gRPC 服务端（MMS 客户端 / Mock IED）
+│   ├── capture/                  # C++ 抓包后端（报文存储、辅助进程）
 │   └── generated/                # Protobuf/gRPC 生成代码
-├── scripts/
-│   ├── build-backend.js          # C++ 后端构建脚本
-│   └── run-electron.js           # 应用启动脚本
+├── native-lite/                  # 独立监控应用（Qt，含文档与截图）
+├── scripts/                      # 构建/检查/测试脚本
+├── tests/                        # 单元测试与 UI 自动化测试
+├── docs/                         # 使用文档、迁移说明与博客素材
 ├── third_party/
 │   └── libiec61850/              # libiec61850 开源库
 ├── CMakeLists.txt                # CMake 构建配置
@@ -156,10 +170,17 @@ npm run dev
 
 | 命令 | 说明 |
 |------|------|
-| `npm run dev` | 构建后端 + 启动应用 |
+| `npm run dev` | 构建后端 + 启动应用（开发模式） |
 | `npm run start` | 直接启动 Electron |
 | `npm run build:backend` | 构建 C++ 后端 |
+| `npm run build:capture` | 构建 C++ 抓包后端 |
 | `npm run check` | 语法与代码检查 |
+| `npm test` | 运行单元测试 |
+| `npm run test:ai` | 运行 AI 模块单元测试 |
+| `npm run test:ai-ui` | 运行 AI 抓包 UI 自动化测试 |
+| `npm run test:client-ui` | 运行客户端 UI 自动化测试 |
+| `npm run dist` | 构建后端 + 抓包后端 + 打包安装版/便携版 |
+| `npm run dist:portable` | 打包 ZIP 便携版 |
 
 ---
 
@@ -215,6 +236,9 @@ npm run dev
 - **后端**: C++17, CMake, Ninja
 - **通信协议**: gRPC (双向流), Protobuf
 - **IEC 61850**: libiec61850 (MMS, GOOSE, SV)
+- **抓包后端**: C++17 抓包服务（PCAP/PCAPNG 解析、报文存储）
+- **AI 诊断**: DeepSeek 报文分析与学习诊断
+- **native-lite**: Qt (C++) 独立监控应用
 - **安全**: contextIsolation + contextBridge
 
 ---
